@@ -100,7 +100,8 @@
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; background: var(--bg); }
+html, body { height: 100%; overflow: hidden; }
 body {
   margin: 0;
   background: var(--bg);
@@ -113,6 +114,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; border: 0; background: none; padding: 0; }
 input, select, textarea { font-size: 16px; } /* iOS: без автозума */
 
+/* Прокручивается только #scroll — body неподвижен, поэтому таббар всегда прижат к низу (iOS PWA) */
+#scroll { position: fixed; inset: 0; overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+#scroll.locked { overflow: hidden; }
 #app {
   max-width: 640px;
   margin: 0 auto;
@@ -212,11 +216,16 @@ h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: v
 
 .field { display: block; margin-bottom: 12px; }
 .field > span { display: block; font-size: 13px; color: var(--text2); margin-bottom: 4px; font-weight: 500; }
-.inp { width: 100%; height: 46px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--card2); padding: 0 12px; outline: none; }
+.inp { display: block; width: 100%; min-width: 0; max-width: 100%; height: 46px; -webkit-appearance: none; appearance: none; border-radius: 12px; border: 1.5px solid var(--line); background: var(--card2); padding: 0 12px; outline: none; }
 .inp:focus { border-color: var(--accent); }
+input[type="date"].inp { line-height: 46px; text-align: left; }
+input[type="date"].inp::-webkit-date-and-time-value { text-align: left; margin: 0; }
+input[type="date"].inp::-webkit-calendar-picker-indicator { opacity: .6; }
+select.inp { padding-right: 36px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23898781' stroke-width='2'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; }
 textarea.inp { height: auto; min-height: 72px; padding: 10px 12px; resize: vertical; }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.field, .grid2 > *, .grid3 > * { min-width: 0; }
 .seg { display: flex; background: var(--card2); border-radius: 12px; padding: 3px; gap: 2px; }
 .seg button { flex: 1; min-height: 36px; border-radius: 9px; font-size: 14px; font-weight: 500; color: var(--text2); }
 .seg button.on { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.15); font-weight: 600; }
@@ -231,6 +240,15 @@ textarea.inp { height: auto; min-height: 72px; padding: 10px 12px; resize: verti
 .body-map .m-s { fill: var(--m-sec); }
 .body-map .m-p { fill: var(--accent); }
 .body-map text { fill: var(--muted); font-size: 7px; text-anchor: middle; }
+/* Фото техники: две позиции сменяют друг друга */
+.anim { position: relative; aspect-ratio: 3 / 2; border-radius: 14px; overflow: hidden; background: #111; margin: 4px 0 8px; }
+.anim img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.anim img.b { animation: swap 2.6s ease-in-out infinite; }
+.anim.paused img.b { animation-play-state: paused; }
+.anim .lbl { position: absolute; left: 8px; bottom: 8px; font-size: 11px; font-weight: 600; color: #fff; background: rgba(0,0,0,.55); padding: 3px 8px; border-radius: 99px; }
+.anim .lbl::after { content: 'старт → финиш'; }
+@keyframes swap { 0%, 38% { opacity: 0; } 50%, 88% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .anim img.b { animation: none; opacity: 0; } }
 .legend { display: flex; gap: 14px; justify-content: center; font-size: 12px; color: var(--text2); margin-top: 4px; flex-wrap: wrap; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
 
@@ -251,7 +269,7 @@ textarea.inp { height: auto; min-height: 72px; padding: 10px 12px; resize: verti
 .tip.on { opacity: 1; }
 .tip b { font-weight: 650; }
 .empty { padding: 24px 8px; text-align: center; color: var(--muted); font-size: 14px; }
-.heat { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 1fr); gap: 3px; }
+.heat { display: grid; grid-auto-flow: column; grid-template-columns: repeat(var(--weeks, 18), minmax(0, 1fr)); grid-template-rows: repeat(7, auto); gap: 3px; }
 .heat i { aspect-ratio: 1; border-radius: 3px; background: var(--heat0); }
 .heat i.s { background: var(--s1); }
 .heat i.c { background: var(--s2); }
@@ -331,7 +349,7 @@ table.t td.r, table.t th.r { text-align: right; }
 </style>
 </head>
 <body>
-<main id="app"></main>
+<div id="scroll"><main id="app"></main></div>
 <div id="timer"></div>
 <nav id="tabs"></nav>
 <div id="sheet"><div class="bd" data-action="close-sheet"></div><div class="pane"></div></div>

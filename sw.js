@@ -1,9 +1,11 @@
 // Офлайн-кэш: отдаём из кэша, в фоне обновляем. Меняй VERSION при выкладке новой версии.
-const VERSION = 'gym-v1';
-const ASSETS = ['./', './index.html', './app.js', './data.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
+importScripts('data.js'); // EX_IMAGES — список фото для офлайна
+const VERSION = 'gym-v2';
+const ASSETS = ['./', './index.html', './app.js', './data.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
+  ...[...EX_IMAGES].flatMap((id) => [`./img/ex/${id}-0.jpg`, `./img/ex/${id}-1.jpg`])];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {

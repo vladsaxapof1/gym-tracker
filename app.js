@@ -44,6 +44,8 @@ const agoStr = (iso) => {
 };
 const roundTo = (x, step) => Math.round(x / step) * step;
 
+const scrollTop = () => $('#scroll').scrollTo(0, 0);
+
 function toast(msg) {
   const t = $('#toast');
   t.textContent = msg;
@@ -206,6 +208,11 @@ function bodyMap(p = [], s = [], small = false) {
   return `<svg class="body-map" viewBox="0 0 210 176" ${small ? 'style="max-width:200px"' : ''} role="img" aria-label="Мышцы: ${esc(label)}">
     ${fig(BODY_SHAPES.front)}<g transform="translate(110 0)">${fig(BODY_SHAPES.back)}</g>
     <text x="50" y="174">спереди</text><text x="160" y="174">сзади</text></svg>`;
+}
+// Фото техники: старт и финиш сменяют друг друга; тап — пауза
+function exAnim(id) {
+  if (!EX_IMAGES.has(id)) return '';
+  return `<div class="anim" data-action="anim" role="img" aria-label="Техника: начальная и конечная позиция"><img src="img/ex/${id}-0.jpg" alt="" loading="lazy"><img class="b" src="img/ex/${id}-1.jpg" alt="" loading="lazy"><span class="lbl"></span></div>`;
 }
 const mapLegend = () => `<div class="legend"><span><i style="background:var(--accent)"></i>основные</span><span><i style="background:var(--m-sec)"></i>вспомогательные</span></div>`;
 
@@ -434,7 +441,7 @@ function startSession(dayId) {
   save();
   wake(true);
   unlockAudio();
-  window.scrollTo(0, 0);
+  scrollTop();
   render();
 }
 
@@ -478,6 +485,7 @@ function exCard(e, i) {
   const complete = e.sets.length > 0 && doneN === e.sets.length;
   const wu = ex.compound && e.sug ? warmupStr(e.sug.w) : '';
   const details = e.open ? `<div class="details">
+      ${exAnim(e.ex)}
       ${ex.p.length ? bodyMap(ex.p, ex.s, true) + mapLegend() : ''}
       <ul class="tips">${ex.tips.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
       ${wu ? `<div class="warmup"><b>Разминка:</b> ${wu}</div>` : ''}
@@ -581,7 +589,7 @@ function finishWorkout() {
   stopTimer();
   wake(false);
   render();
-  window.scrollTo(0, 0);
+  scrollTop();
 
   const sets = entries.reduce((x, e) => x + (e.sets ? e.sets.length : 0), 0);
   const ton = entries.reduce((x, e) => x + (e.sets ? e.sets.reduce((y, s) => y + s.w * s.r, 0) : 0), 0);
@@ -771,6 +779,7 @@ function exInfoSheet(id) {
   openSheet(`
     <div class="sheet-head"><h2>${esc(ex.name)}</h2><button class="x" data-action="close-sheet">${IC.x}</button></div>
     <div class="row wrap" style="margin-top:-4px"><span class="badge">${EQUIP[ex.equip]}</span>${ex.p.map((m) => `<span class="badge accent">${MUSCLES[m]}</span>`).join('')}${ex.s.map((m) => `<span class="badge">${MUSCLES[m]}</span>`).join('')}</div>
+    ${EX_IMAGES.has(id) ? `<div style="margin-top:12px">${exAnim(id)}</div>` : ''}
     ${ex.p.length ? `<div class="card" style="margin-top:12px">${bodyMap(ex.p, ex.s)}${mapLegend()}</div>` : ''}
     ${ex.tips.length ? `<h3>Техника</h3><div class="card"><ul class="tips" style="margin:0">${ex.tips.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
     ${hist ? `<h3>Мой прогресс</h3><div class="card">${hist}</div>` : ''}
@@ -878,7 +887,7 @@ function viewStats() {
     <div class="small muted" style="margin-bottom:6px">Тренировок в неделю</div>
     ${chartSlot({ type: 'bars', bars, int: true })}
     <div class="small muted" style="margin:14px 0 6px">Последние ${WEEKS} недель</div>
-    <div class="heat">${cells}</div>
+    <div class="heat" style="--weeks:${WEEKS}">${cells}</div>
     <div class="legend" style="justify-content:flex-start;margin-top:8px"><span><i style="background:var(--s1)"></i>силовая</span><span><i style="background:var(--s2)"></i>кардио</span><span><i style="background:var(--heat0)"></i>отдых</span></div>
   </div>
 
@@ -1040,7 +1049,7 @@ function viewMore() {
     <div class="spacer"></div>
     <button class="btn block danger" data-action="wipe">Удалить все данные</button>
   </div>
-  <p class="small muted" style="text-align:center">Дневник тренировок · v1</p>`;
+  <p class="small muted" style="text-align:center">Дневник тренировок · v2<br>Фото упражнений: free-exercise-db (общественное достояние)</p>`;
 }
 
 async function exportData() {
@@ -1167,12 +1176,12 @@ function openSheet(html, ctx = {}) {
   p.innerHTML = '<div class="grab"></div>' + html;
   $('#sheet').classList.add('on');
   p.scrollTop = 0;
-  document.body.style.overflow = 'hidden';
+  $('#scroll').classList.add('locked');
   requestAnimationFrame(drawCharts);
 }
 function closeSheet() {
   $('#sheet').classList.remove('on');
-  document.body.style.overflow = '';
+  $('#scroll').classList.remove('locked');
   SC = {};
 }
 
@@ -1202,7 +1211,7 @@ async function persistStatus() {
 
 // ───────────────────────── Действия ─────────────────────────
 const A = {
-  tab: (d) => { S.ui.tab = d.v; save(); closeSheet(); render(); window.scrollTo(0, 0); },
+  tab: (d) => { S.ui.tab = d.v; save(); closeSheet(); render(); scrollTop(); },
   start: (d) => startSession(d.day),
   'toggle-ex': (d) => { const e = S.active.entries[+d.i]; e.open = !e.open; save(); render(); },
   check: (d) => {
@@ -1246,11 +1255,12 @@ const A = {
   finish: () => finishWorkout(),
   'cancel-workout': () => {
     if (!confirm('Отменить тренировку? Отмеченные подходы не сохранятся.')) return;
-    S.active = null; save(); stopTimer(); wake(false); render(); window.scrollTo(0, 0);
+    S.active = null; save(); stopTimer(); wake(false); render(); scrollTop();
   },
   'timer-add': (d) => { if (!T) return; T.end = Math.max(Date.now() + 1000, T.end + +d.v * 1000); T.total = Math.max(1, T.total + +d.v); T.fired = false; localStorage.setItem(TIMER_KEY, JSON.stringify(T)); tick(); },
   'timer-stop': () => stopTimer(),
   'close-sheet': () => closeSheet(),
+  anim: (d, el) => el.classList.toggle('paused'),
   'ex-info': (d) => exInfoSheet(d.id),
   session: (d) => sessionSheet(d.id),
   'del-session': (d) => {
@@ -1405,4 +1415,9 @@ if (S.active) wake(true);
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
+  // Новая версия приложения взяла управление — перезагружаемся, если не идёт тренировка
+  const hadSW = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadSW && !S.active && !window._reloaded) { window._reloaded = true; location.reload(); }
+  });
 }

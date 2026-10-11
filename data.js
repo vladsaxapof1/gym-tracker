@@ -521,3 +521,7 @@ const BODY_SHAPES = {
     ['base', '<path d="M38.2 151.5 h4.8 l1.2 11.5 h-7.4 z"/>'],
   ],
 };
+
+// Фото начальной и конечной позиции: img/ex/<id>-0.jpg и -1.jpg
+// Источник: free-exercise-db (github.com/yuhonas/free-exercise-db), лицензия Unlicense
+const EX_IMAGES = new Set(["ab_wheel", "bb_curl", "bb_row", "bench", "bulgarian", "cable_crunch", "cable_fly", "cable_row", "calf_seated", "calf_standing", "close_grip", "db_bench", "db_ohp", "db_row", "deadlift", "dips", "face_pull", "goblet_squat", "hack", "hammer", "hanging_leg_raise", "hip_thrust", "incline_bb", "incline_curl", "incline_db", "lat_pulldown", "lat_raise", "leg_curl_lying", "leg_curl_seated", "leg_ext", "leg_press", "lunge", "machine_press", "oh_ext", "ohp", "pec_deck", "plank", "preacher", "pullup", "pushdown", "rdl", "rear_fly", "shrug", "skull", "squat"]);
